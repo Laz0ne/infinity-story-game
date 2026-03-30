@@ -8,136 +8,186 @@
 </head>
 <body>
 
-  <!-- ══════════════════════════════════════════════════════
-       ÉCRAN D'ACCUEIL
-  ══════════════════════════════════════════════════════ -->
-  <div id="screen-welcome" class="screen active">
-    <div class="welcome-container">
-      <div class="logo">
-        <span class="logo-icon">⚔️</span>
-        <h1>Infinity Story Game</h1>
-        <p class="tagline">Chaque choix forge ton destin. L'histoire ne s'arrête jamais.</p>
-      </div>
+  <!-- Canvas background (z-index 0) -->
+  <div id="pixi-container"></div>
 
-      <form id="form-character" class="character-form">
-        <div class="form-group">
-          <label for="input-name">Ton nom, aventurier</label>
-          <input
-            type="text"
-            id="input-name"
-            placeholder="Entre ton nom…"
-            maxlength="50"
-            autocomplete="off"
-            required
-          />
+  <!-- UI overlay on top of the canvas (z-index 10) -->
+  <div id="ui-overlay">
+
+    <!-- ══════════ ÉCRAN D'ACCUEIL ══════════ -->
+    <div id="screen-welcome" class="screen active">
+      <div class="welcome-inner">
+        <div class="title-block">
+          <svg class="title-swords" viewBox="0 0 80 40" aria-hidden="true">
+            <line x1="5" y1="35" x2="40" y2="5" stroke="#d4a843" stroke-width="3" stroke-linecap="round"/>
+            <line x1="75" y1="35" x2="40" y2="5" stroke="#d4a843" stroke-width="3" stroke-linecap="round"/>
+            <circle cx="40" cy="5" r="3" fill="#d4a843"/>
+          </svg>
+          <h1 id="game-title">Infinity Story Game</h1>
+          <p class="tagline">Chaque choix forge ton destin. L'histoire ne s'arrête jamais.</p>
         </div>
 
-        <div class="form-group">
-          <label>Choisis ta classe</label>
-          <div class="class-cards">
-            <label class="class-card" for="class-aventurier">
-              <input type="radio" id="class-aventurier" name="character_class" value="aventurier" checked />
-              <div class="card-content">
-                <span class="card-icon">🗡️</span>
-                <span class="card-name">Aventurier</span>
-                <span class="card-desc">Courageux et intrépide. Tu affrontes chaque obstacle de face.</span>
-              </div>
-            </label>
-            <label class="class-card" for="class-voleur">
-              <input type="radio" id="class-voleur" name="character_class" value="voleur" />
-              <div class="card-content">
-                <span class="card-icon">🗝️</span>
-                <span class="card-name">Voleur</span>
-                <span class="card-desc">Rusé et discret. Les ombres sont tes alliées.</span>
-              </div>
-            </label>
-            <label class="class-card" for="class-marchand">
-              <input type="radio" id="class-marchand" name="character_class" value="marchand" />
-              <div class="card-content">
-                <span class="card-icon">💰</span>
-                <span class="card-name">Marchand</span>
-                <span class="card-desc">Diplomate et calculateur. L'or ouvre toutes les portes.</span>
-              </div>
-            </label>
+        <form id="form-character" class="character-form">
+          <div class="form-group">
+            <label for="input-name">Ton nom, aventurier</label>
+            <input
+              type="text"
+              id="input-name"
+              placeholder="Entre ton nom…"
+              maxlength="50"
+              autocomplete="off"
+              required
+            />
+          </div>
+
+          <div class="form-group">
+            <label>Choisis ta classe</label>
+            <div class="class-cards">
+
+              <label class="class-card" for="class-aventurier">
+                <input type="radio" id="class-aventurier" name="character_class" value="aventurier" checked />
+                <div class="card-content">
+                  <svg class="class-silhouette" viewBox="0 0 60 90" aria-hidden="true">
+                    <circle cx="30" cy="14" r="11" fill="currentColor"/>
+                    <rect x="19" y="26" width="22" height="32" rx="3" fill="currentColor"/>
+                    <rect x="17" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="33" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="7"  y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <rect x="41" y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <rect x="50" y="10" width="4"  height="44" rx="2" fill="#d4a843"/>
+                    <rect x="45" y="28" width="14" height="4"  rx="2" fill="#d4a843"/>
+                  </svg>
+                  <span class="card-name">Aventurier</span>
+                  <span class="card-desc">Courageux et intrépide. Tu affrontes chaque obstacle de face.</span>
+                </div>
+              </label>
+
+              <label class="class-card" for="class-voleur">
+                <input type="radio" id="class-voleur" name="character_class" value="voleur" />
+                <div class="card-content">
+                  <svg class="class-silhouette" viewBox="0 0 60 90" aria-hidden="true">
+                    <circle cx="30" cy="14" r="11" fill="currentColor"/>
+                    <ellipse cx="30" cy="8" rx="17" ry="14" fill="currentColor"/>
+                    <rect x="19" y="26" width="22" height="32" rx="3" fill="currentColor"/>
+                    <rect x="17" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="33" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="7"  y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <rect x="41" y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <rect x="52" y="40" width="3"  height="20" rx="1" fill="#aaa"/>
+                  </svg>
+                  <span class="card-name">Voleur</span>
+                  <span class="card-desc">Rusé et discret. Les ombres sont tes alliées.</span>
+                </div>
+              </label>
+
+              <label class="class-card" for="class-marchand">
+                <input type="radio" id="class-marchand" name="character_class" value="marchand" />
+                <div class="card-content">
+                  <svg class="class-silhouette" viewBox="0 0 60 90" aria-hidden="true">
+                    <circle cx="30" cy="14" r="11" fill="currentColor"/>
+                    <rect x="19" y="26" width="22" height="32" rx="3" fill="currentColor"/>
+                    <rect x="17" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="33" y="58" width="10" height="26" rx="2" fill="currentColor"/>
+                    <rect x="7"  y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <rect x="41" y="28" width="12" height="7"  rx="2" fill="currentColor"/>
+                    <circle cx="9" cy="46" r="10" fill="currentColor"/>
+                    <circle cx="9" cy="46" r="7"  fill="#d4a843" opacity="0.4"/>
+                  </svg>
+                  <span class="card-name">Marchand</span>
+                  <span class="card-desc">Diplomate et calculateur. L'or ouvre toutes les portes.</span>
+                </div>
+              </label>
+
+            </div>
+          </div>
+
+          <button type="submit" class="btn-start" id="btn-start">
+            <span>Commencer l'aventure</span>
+            <span class="btn-arrow">→</span>
+          </button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ══════════ ÉCRAN DE JEU ══════════ -->
+    <div id="screen-game" class="screen">
+
+      <!-- Barre de stats -->
+      <header class="stats-bar">
+        <div class="stat-group">
+          <div class="stat-pill">
+            <span class="stat-icon">📖</span>
+            <span class="stat-label">Tour</span>
+            <span class="stat-value" id="val-turn">0</span>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-icon">⚖️</span>
+            <span class="stat-label">Réputation</span>
+            <span class="stat-value" id="val-reputation">0</span>
+            <div class="mini-bar-wrap"><div class="mini-bar rep-bar" id="bar-reputation"></div></div>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-icon">💰</span>
+            <span class="stat-label">Argent</span>
+            <span class="stat-value" id="val-argent">50</span>
+            <div class="mini-bar-wrap"><div class="mini-bar gold-bar" id="bar-argent"></div></div>
+          </div>
+          <div class="stat-pill">
+            <span class="stat-icon">🌟</span>
+            <span class="stat-label">Influence</span>
+            <span class="stat-value" id="val-influence">10</span>
+            <div class="mini-bar-wrap"><div class="mini-bar purple-bar" id="bar-influence"></div></div>
+          </div>
+          <div class="stat-pill player-pill">
+            <span class="stat-icon" id="class-icon">🗡️</span>
+            <span class="stat-value player-name" id="val-name">—</span>
           </div>
         </div>
-
-        <button type="submit" class="btn-start" id="btn-start">
-          <span>Commencer l'aventure</span>
-          <span class="btn-icon">→</span>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- ══════════════════════════════════════════════════════
-       ÉCRAN DE JEU
-  ══════════════════════════════════════════════════════ -->
-  <div id="screen-game" class="screen">
-
-    <!-- Barre de stats -->
-    <header class="stats-bar">
-      <div class="stat" id="stat-turn">
-        <span class="stat-icon">📖</span>
-        <span class="stat-label">Tour</span>
-        <span class="stat-value" id="val-turn">0</span>
-      </div>
-      <div class="stat" id="stat-reputation">
-        <span class="stat-icon">⚖️</span>
-        <span class="stat-label">Réputation</span>
-        <span class="stat-value" id="val-reputation">0</span>
-      </div>
-      <div class="stat" id="stat-argent">
-        <span class="stat-icon">💰</span>
-        <span class="stat-label">Argent</span>
-        <span class="stat-value" id="val-argent">50</span>
-      </div>
-      <div class="stat" id="stat-influence">
-        <span class="stat-icon">🌟</span>
-        <span class="stat-label">Influence</span>
-        <span class="stat-value" id="val-influence">10</span>
-      </div>
-      <div class="stat player-info">
-        <span class="stat-icon" id="class-icon">🗡️</span>
-        <span class="stat-value" id="val-name">—</span>
-      </div>
-    </header>
-
-    <!-- Zone principale -->
-    <main class="game-main">
-      <div class="story-container">
-        <div id="story-text" class="story-text"></div>
-        <div id="typing-cursor" class="typing-cursor">|</div>
-      </div>
-
-      <!-- Indicateur de chargement -->
-      <div id="loading" class="loading hidden">
-        <div class="loading-dots">
-          <span></span><span></span><span></span>
+        <div class="stats-actions">
+          <button id="btn-mute" class="icon-btn" title="Son (M)">🔇</button>
+          <button id="btn-fullscreen" class="icon-btn" title="Plein écran">⛶</button>
         </div>
-        <p>L'histoire se tisse…</p>
-      </div>
+      </header>
 
-      <!-- Boutons de choix -->
-      <div id="choices-container" class="choices-container hidden">
-        <p class="choices-label">Que fais-tu ?</p>
-        <div id="choices-list" class="choices-list">
-          <!-- Injecté dynamiquement -->
+      <!-- Zone principale -->
+      <main class="game-main">
+
+        <!-- Panneau histoire -->
+        <div class="story-panel" id="story-panel">
+          <div id="story-text" class="story-text"></div>
+          <span id="typing-cursor" class="typing-cursor">▋</span>
         </div>
-      </div>
-    </main>
-  </div>
 
-  <!-- ══════════════════════════════════════════════════════
-       OVERLAY D'ERREUR
-  ══════════════════════════════════════════════════════ -->
-  <div id="error-overlay" class="error-overlay hidden">
-    <div class="error-box">
-      <span class="error-icon">⚠️</span>
-      <p id="error-message">Une erreur est survenue.</p>
-      <button id="btn-error-close" class="btn-secondary">Fermer</button>
+        <!-- Chargement -->
+        <div id="loading" class="loading hidden">
+          <div class="loading-ring"></div>
+          <p>L'histoire se tisse…</p>
+        </div>
+
+        <!-- Choix -->
+        <div id="choices-container" class="choices-container hidden">
+          <p class="choices-label">— Que fais-tu ? —</p>
+          <div id="choices-list" class="choices-list"></div>
+        </div>
+
+      </main>
     </div>
-  </div>
+
+    <!-- ══════════ TRANSITION CINÉMATIQUE ══════════ -->
+    <div id="transition-overlay" class="transition-overlay">
+      <p id="transition-text" class="transition-text"></p>
+    </div>
+
+    <!-- ══════════ OVERLAY D'ERREUR ══════════ -->
+    <div id="error-overlay" class="error-overlay hidden">
+      <div class="error-box">
+        <span class="error-icon">⚠️</span>
+        <p id="error-message">Une erreur est survenue.</p>
+        <button id="btn-error-close" class="btn-secondary">Fermer</button>
+      </div>
+    </div>
+
+  </div><!-- #ui-overlay -->
 
   <script src="/static/app.js"></script>
 </body>

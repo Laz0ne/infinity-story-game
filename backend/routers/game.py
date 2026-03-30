@@ -51,6 +51,7 @@ def new_game(body: NewGameRequest) -> GameStateOut:
         story_text=situation["story_text"],
         choices=[ChoiceOut(id=c["id"], text=c["text"]) for c in situation["choices"]],
         stats=_to_stats_out(player),
+        situation_id=situation["situation_id"],
     )
 
 
@@ -105,6 +106,7 @@ def make_choice(body: ChoiceRequest) -> TurnOut:
         choices=[ChoiceOut(id=c["id"], text=c["text"]) for c in next_situation["choices"]],
         stats=_to_stats_out(updated_player),
         turn=updated_player["turn"],
+        situation_id=next_situation["situation_id"],
     )
 
 
