@@ -23,7 +23,8 @@
   --text-muted:   #8a8080;
   --text-gold:    #d4a843;
 
-  --font-fantasy: 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  --font-fantasy: 'Cinzel', 'Palatino Linotype', 'Book Antiqua', Palatino, Georgia, serif;
+  --font-story:   'IM Fell English', 'Palatino Linotype', Georgia, serif;
   --font-ui:      'Segoe UI', system-ui, sans-serif;
 
   --radius:  10px;
@@ -123,7 +124,7 @@ html, body {
 
 #game-title {
   font-size: clamp(1.6rem, 5vw, 2.6rem);
-  font-family: var(--font-fantasy);
+  font-family: 'Cinzel Decorative', var(--font-fantasy);
   color: var(--gold);
   letter-spacing: 0.06em;
   text-shadow: 0 0 30px rgba(212,168,67,0.5), 0 2px 4px rgba(0,0,0,0.8);
@@ -402,10 +403,12 @@ html, body {
 }
 
 .story-text {
-  font-size: clamp(0.92rem, 2.2vw, 1.07rem);
-  line-height: 1.85;
+  font-size: clamp(1rem, 2.4vw, 1.14rem);
+  line-height: 1.9;
   color: var(--text-primary);
   white-space: pre-wrap;
+  font-family: var(--font-story);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.6);
 }
 
 .typing-cursor {
@@ -477,6 +480,12 @@ html, body {
   to   { opacity: 1; transform: translateX(0); }
 }
 
+/* Scanning light effect on choice hover */
+@keyframes scan-light {
+  from { left: -60%; }
+  to   { left: 120%; }
+}
+
 .btn-choice {
   background: var(--glass-bg);
   backdrop-filter: var(--glass-blur);
@@ -485,24 +494,42 @@ html, body {
   border-radius: var(--radius);
   color: var(--text-primary);
   cursor: pointer;
-  font-family: var(--font-fantasy);
-  font-size: 0.95rem;
+  font-family: var(--font-story);
+  font-size: 1rem;
   padding: 0.8rem 1.1rem;
   text-align: left;
   transition: border-color var(--trans), background var(--trans), box-shadow var(--trans), transform var(--trans);
   width: 100%;
   position: relative;
+  overflow: hidden;
   animation: slide-in 0.35s ease both;
 }
 
 .btn-choice::before {
   content: attr(data-idx);
   color: var(--gold);
-  font-family: var(--font-ui);
+  font-family: 'Cinzel', var(--font-ui);
   font-size: 0.72rem;
   font-weight: 700;
   margin-right: 0.55rem;
   opacity: 0.8;
+}
+
+.btn-choice::after {
+  content: '';
+  position: absolute;
+  top: 0; left: -60%;
+  width: 45%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(212,168,67,0.12), transparent);
+  transform: skewX(-15deg);
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.btn-choice:hover::after {
+  opacity: 1;
+  animation: scan-light 0.6s ease forwards;
 }
 
 .btn-choice:hover {
