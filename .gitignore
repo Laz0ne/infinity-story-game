@@ -32,6 +32,8 @@ ENV/
 
 # Base de données
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 

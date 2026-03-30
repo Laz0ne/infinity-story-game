@@ -31,6 +31,7 @@ class GameStateOut(BaseModel):
     story_text: str
     choices: list[ChoiceOut]
     stats: StatsOut
+    situation_id: str = ""
 
 
 class TurnOut(BaseModel):
@@ -38,3 +39,4 @@ class TurnOut(BaseModel):
     choices: list[ChoiceOut]
     stats: StatsOut
     turn: int
+    situation_id: str = ""
