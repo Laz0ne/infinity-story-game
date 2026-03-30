@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Infinity Story Game</title>
+  <link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- ══════════════════════════════════════════════════════
+       ÉCRAN D'ACCUEIL
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-welcome" class="screen active">
+    <div class="welcome-container">
+      <div class="logo">
+        <span class="logo-icon">⚔️</span>
+        <h1>Infinity Story Game</h1>
+        <p class="tagline">Chaque choix forge ton destin. L'histoire ne s'arrête jamais.</p>
+      </div>
+
+      <form id="form-character" class="character-form">
+        <div class="form-group">
+          <label for="input-name">Ton nom, aventurier</label>
+          <input
+            type="text"
+            id="input-name"
+            placeholder="Entre ton nom…"
+            maxlength="50"
+            autocomplete="off"
+            required
+          />
+        </div>
+
+        <div class="form-group">
+          <label>Choisis ta classe</label>
+          <div class="class-cards">
+            <label class="class-card" for="class-aventurier">
+              <input type="radio" id="class-aventurier" name="character_class" value="aventurier" checked />
+              <div class="card-content">
+                <span class="card-icon">🗡️</span>
+                <span class="card-name">Aventurier</span>
+                <span class="card-desc">Courageux et intrépide. Tu affrontes chaque obstacle de face.</span>
+              </div>
+            </label>
+            <label class="class-card" for="class-voleur">
+              <input type="radio" id="class-voleur" name="character_class" value="voleur" />
+              <div class="card-content">
+                <span class="card-icon">🗝️</span>
+                <span class="card-name">Voleur</span>
+                <span class="card-desc">Rusé et discret. Les ombres sont tes alliées.</span>
+              </div>
+            </label>
+            <label class="class-card" for="class-marchand">
+              <input type="radio" id="class-marchand" name="character_class" value="marchand" />
+              <div class="card-content">
+                <span class="card-icon">💰</span>
+                <span class="card-name">Marchand</span>
+                <span class="card-desc">Diplomate et calculateur. L'or ouvre toutes les portes.</span>
+              </div>
+            </label>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-start" id="btn-start">
+          <span>Commencer l'aventure</span>
+          <span class="btn-icon">→</span>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       ÉCRAN DE JEU
+  ══════════════════════════════════════════════════════ -->
+  <div id="screen-game" class="screen">
+
+    <!-- Barre de stats -->
+    <header class="stats-bar">
+      <div class="stat" id="stat-turn">
+        <span class="stat-icon">📖</span>
+        <span class="stat-label">Tour</span>
+        <span class="stat-value" id="val-turn">0</span>
+      </div>
+      <div class="stat" id="stat-reputation">
+        <span class="stat-icon">⚖️</span>
+        <span class="stat-label">Réputation</span>
+        <span class="stat-value" id="val-reputation">0</span>
+      </div>
+      <div class="stat" id="stat-argent">
+        <span class="stat-icon">💰</span>
+        <span class="stat-label">Argent</span>
+        <span class="stat-value" id="val-argent">50</span>
+      </div>
+      <div class="stat" id="stat-influence">
+        <span class="stat-icon">🌟</span>
+        <span class="stat-label">Influence</span>
+        <span class="stat-value" id="val-influence">10</span>
+      </div>
+      <div class="stat player-info">
+        <span class="stat-icon" id="class-icon">🗡️</span>
+        <span class="stat-value" id="val-name">—</span>
+      </div>
+    </header>
+
+    <!-- Zone principale -->
+    <main class="game-main">
+      <div class="story-container">
+        <div id="story-text" class="story-text"></div>
+        <div id="typing-cursor" class="typing-cursor">|</div>
+      </div>
+
+      <!-- Indicateur de chargement -->
+      <div id="loading" class="loading hidden">
+        <div class="loading-dots">
+          <span></span><span></span><span></span>
+        </div>
+        <p>L'histoire se tisse…</p>
+      </div>
+
+      <!-- Boutons de choix -->
+      <div id="choices-container" class="choices-container hidden">
+        <p class="choices-label">Que fais-tu ?</p>
+        <div id="choices-list" class="choices-list">
+          <!-- Injecté dynamiquement -->
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- ══════════════════════════════════════════════════════
+       OVERLAY D'ERREUR
+  ══════════════════════════════════════════════════════ -->
+  <div id="error-overlay" class="error-overlay hidden">
+    <div class="error-box">
+      <span class="error-icon">⚠️</span>
+      <p id="error-message">Une erreur est survenue.</p>
+      <button id="btn-error-close" class="btn-secondary">Fermer</button>
+    </div>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
