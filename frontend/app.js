@@ -36,7 +36,11 @@ function startLoop() {
     const dt = Math.min(now - lastTime, 50);
     lastTime = now;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
+    updateCamera(dt, currentThemeKey);
+    applyCameraBegin(ctx);
     if (currentRenderFn) currentRenderFn(ctx, dt);
+    applyCameraEnd(ctx);
+    applyPostProcessing(ctx, dt, currentThemeKey);
     rafId = requestAnimationFrame(loop);
   }
   rafId = requestAnimationFrame(loop);
@@ -149,16 +153,22 @@ class ParticleSystem {
 
   _emit(opts) {
     this.particles.push({
-      x:    opts.x, y: opts.y,
-      vx:   (opts.vx || 0) + (Math.random() - 0.5) * (opts.spread || 1),
-      vy:   opts.vy || -0.8,
-      life: 1,
-      dur:  opts.life || 2,
-      sz:   rand(opts.minSize || 1.5, opts.maxSize || 4),
-      col:  opts.color || '#ffffff',
-      al:   opts.alpha || 0.75,
-      grav: opts.gravity || 0,
-      shape:opts.shape  || 'circle',
+      x:            opts.x, y: opts.y,
+      vx:           (opts.vx || 0) + (Math.random() - 0.5) * (opts.spread || 1),
+      vy:           opts.vy || -0.8,
+      life:         1,
+      dur:          opts.life || 2,
+      sz:           rand(opts.minSize || 1.5, opts.maxSize || 4),
+      col:          opts.color || '#ffffff',
+      al:           opts.alpha || 0.75,
+      grav:         opts.gravity || 0,
+      shape:        opts.shape  || 'circle',
+      fireMode:     opts.fireMode     || false,
+      firefly:      opts.firefly      || false,
+      fireflyPhase: Math.random() * Math.PI * 2,
+      isRain:       opts.isRain       || false,
+      groundY:      opts.groundY      || 0,
+      splashed:     false,
     });
   }
 
@@ -178,6 +188,8 @@ class ParticleSystem {
       }
     }
 
+    const splashToAdd = [];
+
     for (let i = this.particles.length - 1; i >= 0; i--) {
       const p = this.particles[i];
       p.life -= DT / (p.dur * 60);
@@ -187,10 +199,56 @@ class ParticleSystem {
       p.y  += p.vy * DT;
       p.vy += p.grav * DT;
 
+      // Firefly sinusoidal lateral movement
+      if (p.firefly) {
+        const age = (1 - p.life) * p.dur;
+        p.x += Math.sin(age * 3 + p.fireflyPhase) * 0.5;
+      }
+
+      // Rain splash: spawn micro-particles when raindrop hits ground
+      if (p.isRain && !p.splashed && p.y > p.groundY) {
+        p.splashed = true;
+        for (let si = 0; si < 3; si++) {
+          splashToAdd.push({
+            x: p.x, y: p.groundY,
+            vx: (Math.random() - 0.5) * 3,
+            vy: -rand(0.3, 0.8),
+            life: 1, dur: 0.35,
+            sz: rand(1, 2),
+            col: '#aac0dd', al: 0.55,
+            grav: 0.04, shape: 'circle',
+            fireMode: false, firefly: false, fireflyPhase: 0,
+            isRain: false, groundY: 0, splashed: false,
+          });
+        }
+      }
+
       const a = p.al * Math.min(1, p.life * 2);
       ctx.save();
-      ctx.globalAlpha = Math.max(0, a);
-      ctx.fillStyle   = p.col;
+
+      // Fire color interpolation: yellow → red → dark based on life
+      if (p.fireMode) {
+        const progress = 1 - p.life; // 0 = just spawned, 1 = dying
+        let r, g, b;
+        if (progress < 0.5) {
+          const f = progress * 2;
+          r = 255; g = Math.round(200 * (1 - f)); b = 0;
+        } else {
+          const f = (progress - 0.5) * 2;
+          r = Math.round(200 * (1 - f)); g = 0; b = 0;
+        }
+        ctx.fillStyle = `rgb(${r},${g},${b})`;
+      } else {
+        ctx.fillStyle = p.col;
+      }
+
+      // Firefly glow: pulsing alpha
+      if (p.firefly) {
+        const age2 = (1 - p.life) * p.dur;
+        ctx.globalAlpha = Math.max(0, a * (0.4 + 0.6 * Math.abs(Math.sin(age2 * 4 + p.fireflyPhase))));
+      } else {
+        ctx.globalAlpha = Math.max(0, a);
+      }
 
       if (p.shape === 'rect') {
         ctx.fillRect(p.x - p.sz * 0.5, p.y - p.sz, p.sz, p.sz * 2.5);
@@ -201,6 +259,126 @@ class ParticleSystem {
       }
       ctx.restore();
     }
+
+    // Add splash particles after the loop to avoid concurrent modification
+    for (const sp of splashToAdd) this.particles.push(sp);
+  }
+}
+
+/* ────────────────────────────────────────────────────────────
+   CAMERA SYSTEM — Ken Burns zoom + screen shake
+──────────────────────────────────────────────────────────── */
+const camera = {
+  zoom: 1.0,
+  shakeX: 0,
+  shakeY: 0,
+  _shakeTimer: 0,
+};
+
+function updateCamera(dt, theme) {
+  const now = performance.now() * 0.001;
+  // Ken Burns: gentle zoom oscillating between 1.0 and 1.02 over ~20 s
+  camera.zoom = 1.0 + 0.01 * (1 - Math.cos(now * Math.PI / 10));
+
+  // Decay existing shake smoothly
+  camera.shakeX *= 0.78;
+  camera.shakeY *= 0.78;
+
+  camera._shakeTimer += dt;
+  if (theme === 'combat' && camera._shakeTimer > 50) {
+    camera.shakeX = (Math.random() - 0.5) * 3;
+    camera.shakeY = (Math.random() - 0.5) * 1.5;
+    camera._shakeTimer = 0;
+  } else if (theme === 'trahison' && camera._shakeTimer > 300) {
+    camera.shakeX = (Math.random() - 0.5) * 2;
+    camera.shakeY = (Math.random() - 0.5) * 1;
+    camera._shakeTimer = 0;
+  }
+}
+
+function applyCameraBegin(ctx) {
+  const w = W(), h = H();
+  ctx.save();
+  ctx.translate(w / 2 + camera.shakeX, h / 2 + camera.shakeY);
+  ctx.scale(camera.zoom, camera.zoom);
+  ctx.translate(-w / 2, -h / 2);
+}
+
+function applyCameraEnd(ctx) {
+  ctx.restore();
+}
+
+/* ────────────────────────────────────────────────────────────
+   POST-PROCESSING — grain, vignette, color grading
+──────────────────────────────────────────────────────────── */
+let _grainCanvas = null, _grainCtx = null, _grainTimer = 0;
+
+const VIGNETTE_STRENGTH = {
+  title: 0.55, ville: 0.45, 'forêt': 0.50, donjon: 0.75,
+  marché: 0.30, combat: 0.60, rencontre: 0.35, mystère: 0.65, trahison: 0.80,
+};
+
+const COLOR_GRADE = {
+  ville:     [255, 180, 100, 0.05],
+  'forêt':   [100, 200, 100, 0.05],
+  donjon:    [80,  100, 180, 0.06],
+  combat:    [200, 80,  60,  0.06],
+  mystère:   [150, 80,  200, 0.06],
+  trahison:  [180, 50,  50,  0.07],
+  marché:    [220, 180, 80,  0.04],
+  rencontre: [220, 160, 100, 0.04],
+};
+
+function applyPostProcessing(ctx, dt, theme) {
+  const w = W(), h = H();
+
+  // 1. Film grain — refreshed every ~100ms, drawn tiled at very low opacity
+  _grainTimer += dt;
+  if (_grainTimer > 100 || !_grainCanvas) {
+    _grainTimer = 0;
+    const gw = 256, gh = 256;
+    if (!_grainCanvas) {
+      _grainCanvas = document.createElement('canvas');
+      _grainCanvas.width  = gw;
+      _grainCanvas.height = gh;
+      _grainCtx = _grainCanvas.getContext('2d');
+    }
+    _grainCtx.clearRect(0, 0, gw, gh);
+    for (let gi = 0; gi < 2500; gi++) {
+      const gx = Math.random() * gw;
+      const gy = Math.random() * gh;
+      const ga = Math.random() * 0.18;
+      _grainCtx.fillStyle = `rgba(255,255,255,${ga})`;
+      _grainCtx.fillRect(gx, gy, 1, 1);
+    }
+  }
+  ctx.save();
+  ctx.globalAlpha = 0.03;
+  const gw2 = _grainCanvas.width, gh2 = _grainCanvas.height;
+  for (let gx2 = 0; gx2 < w; gx2 += gw2) {
+    for (let gy2 = 0; gy2 < h; gy2 += gh2) {
+      ctx.drawImage(_grainCanvas, gx2, gy2);
+    }
+  }
+  ctx.restore();
+
+  // 2. Vignette — radial gradient, dark at edges
+  const vStr = VIGNETTE_STRENGTH[theme] || 0.5;
+  const vRad = Math.hypot(w, h) * 0.5;
+  const vGrad = ctx.createRadialGradient(w / 2, h / 2, vRad * 0.3, w / 2, h / 2, vRad);
+  vGrad.addColorStop(0, 'rgba(0,0,0,0)');
+  vGrad.addColorStop(1, `rgba(0,0,0,${vStr})`);
+  ctx.fillStyle = vGrad;
+  ctx.fillRect(0, 0, w, h);
+
+  // 3. Color grading — subtle theme-tinted overlay
+  const grade = COLOR_GRADE[theme];
+  if (grade) {
+    ctx.save();
+    ctx.globalAlpha = grade[3];
+    ctx.fillStyle = `rgb(${grade[0]},${grade[1]},${grade[2]})`;
+    ctx.fillRect(0, 0, w, h);
+    ctx.restore();
   }
 }
 
@@ -348,13 +526,13 @@ SCENE_BUILDERS['ville'] = function(w, h) {
       x: tp.x, y: tp.y, spreadX: 4,
       vy: -0.9, vx: 0.1, life: 0.8,
       minSize: 2, maxSize: 5, color: '#ff8820', alpha: 0.7, rate: 12,
-      gravity: -0.05,
+      gravity: -0.05, fireMode: true,
     });
     ps.addEmitter({
       x: tp.x, y: tp.y, spreadX: 2,
       vy: -0.5, vx: 0.15, life: 0.5,
       minSize: 1, maxSize: 3, color: '#ffcc00', alpha: 0.5, rate: 8,
-      gravity: -0.03,
+      gravity: -0.03, fireMode: true,
     });
   }
   // Chimney smoke
@@ -470,6 +648,14 @@ SCENE_BUILDERS['forêt'] = function(w, h) {
     vy: 0.38, vx: -0.2, life: 6,
     minSize: 1.5, maxSize: 4, color: '#558833', alpha: 0.5, rate: 3, shape: 'rect', gravity: 0.002,
   });
+  // Fireflies
+  ps.addEmitter({
+    x: () => rand(w * 0.1, w * 0.9),
+    y: () => rand(h * 0.5, h * 0.78),
+    vy: -0.06, vx: 0, spread: 0.3, life: 4,
+    minSize: 1.5, maxSize: 3.5, color: '#aaff44', alpha: 0.85, rate: 2,
+    gravity: 0, firefly: true,
+  });
 
   let t = 0;
   return function(ctx, dt) {
@@ -479,20 +665,23 @@ SCENE_BUILDERS['forêt'] = function(w, h) {
       [0, '#0d1a08'], [0.4, '#142408'], [0.75, '#0a1405'], [1, '#060c03'],
     ]);
 
-    // Light rays
+    // Light rays — more pronounced, oscillating diagonally
     ctx.save();
-    for (let i = 0; i < 5; i++) {
-      const rx  = w * (0.1 + i * 0.2);
-      const ang = Math.sin(t * 0.4 + i) * 0.1;
-      const rh  = h * rand(0.3, 0.6);
-      const pulse = 0.03 + 0.02 * Math.sin(t * 0.6 + i);
+    for (let i = 0; i < 7; i++) {
+      const rx  = w * (0.07 + i * 0.15);
+      const ang = Math.sin(t * 0.3 + i * 1.5) * 0.12;
+      const rh  = h * (0.42 + 0.15 * Math.sin(t * 0.2 + i));
+      const pulse = 0.04 + 0.03 * Math.sin(t * 0.7 + i);
       ctx.globalAlpha = pulse;
-      ctx.fillStyle = '#88cc44';
+      const rayGrad = ctx.createLinearGradient(rx, 0, rx + ang * rh * 60, rh);
+      rayGrad.addColorStop(0, 'rgba(180,255,120,0.9)');
+      rayGrad.addColorStop(1, 'rgba(100,200,60,0)');
+      ctx.fillStyle = rayGrad;
       ctx.beginPath();
-      ctx.moveTo(rx - 12, 0);
-      ctx.lineTo(rx + 12, 0);
-      ctx.lineTo(rx + 12 + ang * rh * 60, rh);
-      ctx.lineTo(rx - 12 + ang * rh * 60, rh);
+      ctx.moveTo(rx - 15, 0);
+      ctx.lineTo(rx + 15, 0);
+      ctx.lineTo(rx + 15 + ang * rh * 60, rh);
+      ctx.lineTo(rx - 15 + ang * rh * 60, rh);
       ctx.closePath();
       ctx.fill();
     }
@@ -545,11 +734,13 @@ SCENE_BUILDERS['donjon'] = function(w, h) {
       x: tp.x, y: tp.y - 14, spreadX: 5,
       vy: -0.8, life: 0.7,
       minSize: 3, maxSize: 7, color: '#ff6600', alpha: 0.8, rate: 15, gravity: -0.04,
+      fireMode: true,
     });
     ps.addEmitter({
       x: tp.x, y: tp.y - 14, spreadX: 3,
       vy: -0.6, life: 0.5,
       minSize: 1.5, maxSize: 4, color: '#ffdd00', alpha: 0.6, rate: 10, gravity: -0.03,
+      fireMode: true,
     });
   }
 
@@ -651,6 +842,28 @@ SCENE_BUILDERS['donjon'] = function(w, h) {
     ctx.restore();
 
     ps.update(ctx, dt);
+
+    // Red eyes pulsing in the darkness
+    const eyeSpots = [
+      { x: w * 0.08, y: h * 0.45 }, { x: w * 0.91, y: h * 0.52 },
+      { x: w * 0.15, y: h * 0.70 }, { x: w * 0.84, y: h * 0.66 },
+    ];
+    for (const ep of eyeSpots) {
+      const pulse   = 0.5 + 0.5 * Math.sin(t * 1.5 + ep.x * 0.01);
+      const blink   = Math.sin(t * 1.8 + ep.y * 0.02) > 0.88 ? 0 : 1;
+      if (blink && pulse > 0.25) {
+        ctx.save();
+        ctx.globalAlpha = pulse * 0.75;
+        ctx.fillStyle = '#ff1100';
+        ctx.beginPath();
+        ctx.ellipse(ep.x - 5, ep.y, 4, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.ellipse(ep.x + 5, ep.y, 4, 2.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
   };
 };
 
@@ -770,11 +983,20 @@ SCENE_BUILDERS['combat'] = function(w, h) {
     x: w * 0.5, y: h * 0.7, spreadX: 20, spreadY: 15,
     vy: -0.8, spread: 3, life: 0.5,
     minSize: 1.5, maxSize: 4, color: '#ffcc00', alpha: 0.9, rate: 20, gravity: 0.05,
+    fireMode: true,
   });
   ps.addEmitter({
     x: w * 0.5, y: h * 0.7, spreadX: 15,
     vy: -0.4, spread: 2, life: 0.3,
     minSize: 1, maxSize: 3, color: '#ff4400', alpha: 0.7, rate: 15, gravity: 0.03,
+    fireMode: true,
+  });
+  // Embers rising from ground
+  ps.addEmitter({
+    x: () => rand(w * 0.25, w * 0.75), y: () => h * 0.82 + rand(-5, 5),
+    vy: -0.5, vx: 0, spread: 1.5, life: 2,
+    minSize: 1, maxSize: 2.5, color: '#ff6600', alpha: 0.8, rate: 8,
+    gravity: -0.02, fireMode: true,
   });
 
   let t = 0, flashTimer = 0;
@@ -1060,6 +1282,7 @@ SCENE_BUILDERS['trahison'] = function(w, h) {
     x: () => rand(-50, w + 50), y: -10,
     vy: 5, vx: 1.5, life: 0.8,
     minSize: 1, maxSize: 2, color: '#4466aa', alpha: 0.4, rate: 65, shape: 'rect', gravity: 0.1,
+    isRain: true, groundY: h * 0.85,
   });
 
   let t = 0, flashTimer = 0;
@@ -1124,6 +1347,10 @@ const TRANSITION_PHRASES = [
   'Les dés sont jetés…', 'Le sort en est mis…',
   'Le vent tourne…', 'Le temps suspend son vol…',
   'L\'aventure continue…', 'Les cartes se redistribuent…',
+  'Les fils du destin se resserrent…',
+  'Un nouveau chapitre s\'écrit dans le sang et la poussière…',
+  'Le monde retient son souffle…',
+  'Tes pas résonnent dans l\'inconnu…',
 ];
 
 const transEl     = document.getElementById('transition-overlay');
